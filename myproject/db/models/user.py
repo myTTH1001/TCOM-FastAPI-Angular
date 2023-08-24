@@ -1,9 +1,14 @@
-from db.base_class import Base
+from db.base import Base
 from sqlalchemy import Boolean
 from sqlalchemy import Column
-from sqlalchemy import Integer
+from sqlalchemy import Integer, ForeignKey, Table
 from sqlalchemy import String
 from sqlalchemy.orm import relationship
+
+
+# user_blog = Table("user_blog", Base.metadata,
+#                        Column("blog_id", ForeignKey("blog.id"), primary_key=True),
+#                        Column("user_id", ForeignKey("user.id"), primary_key=True))
 
 
 class User(Base):

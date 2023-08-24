@@ -1,2 +1,11 @@
 fastapi
 uvicorn
+alembic
+pydantic
+python-dotenv
+SQLAlchemy
+uvicorn
+python-multipart
+pydantic[email] 
+passlib[bcrypt] 
+bcrypt

@@ -1,8 +1,8 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, Text, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, Text, String, Boolean, DateTime, ForeignKey, Table
 from sqlalchemy.orm import relationship
 
-from db.base_class import Base
+from db.base import Base
 
 
 class Blog(Base):
