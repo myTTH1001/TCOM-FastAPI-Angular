@@ -14,3 +14,5 @@ class Blog(Base):
     author = relationship("User",back_populates="blogs")
     created_at = Column(DateTime, default=datetime.now)
     is_active = Column(Boolean, default=False)
+
+
