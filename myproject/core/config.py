@@ -16,4 +16,9 @@ class Settings:
     POSTGRES_DB : str = os.getenv("POSTGRES_DB","myproject")
     DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}"
 
+    # Token
+    SECRET_KEY :str = os.getenv("SECRET_KEY")   
+    ALGORITHM = "HS256"                         
+    ACCESS_TOKEN_EXPIRE_MINUTES = 30  #in mins
+
 settings = Settings()
