@@ -1,11 +1,10 @@
-from fastapi import FastAPI, UploadFile, HTTPException, status
+from fastapi import FastAPI
 from core.config import settings
 from db.session import engine 
 from db.base import Base
 from apis.base import api_router
-import json, os
-from datetime import datetime
-from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
 
 def create_tables():         
 	Base.metadata.create_all(bind=engine)
@@ -22,6 +21,7 @@ def start_application():
 
 app = start_application()
 
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
 def home():

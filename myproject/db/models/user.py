@@ -6,11 +6,6 @@ from sqlalchemy import String
 from sqlalchemy.orm import relationship
 
 
-# user_blog = Table("user_blog", Base.metadata,
-#                        Column("blog_id", ForeignKey("blog.id"), primary_key=True),
-#                        Column("user_id", ForeignKey("user.id"), primary_key=True))
-
-
 class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, nullable=False, unique=True, index=True)
