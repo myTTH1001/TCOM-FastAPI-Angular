@@ -4,7 +4,7 @@ from db.session import engine
 from db.base import Base
 from apis.base import api_router
 from fastapi.staticfiles import StaticFiles
-
+import requests, time
 
 def create_tables():         
 	Base.metadata.create_all(bind=engine)
@@ -18,14 +18,27 @@ def start_application():
     include_router(app)
     return app
 
+def save_system_info_periodically():
+    n = 0
+    while n<5:
+        response = requests.post("http://127.0.0.1:8000/system_info")
+        print(response.json())
+        time.sleep(5)
+        n += 1
 
 app = start_application()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+
+
+import threading
+
+
 @app.get("/")
 def home():
-    return {"msg":"EYEFIRE_DAY3🚀"}
+    # threading.Thread(target=save_system_info_periodically()).start()
+    return {"msg":"🚀EYEFIRE🚀"}
 
 
 

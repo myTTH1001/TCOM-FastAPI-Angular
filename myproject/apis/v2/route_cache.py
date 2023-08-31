@@ -1,13 +1,11 @@
 from fastapi import APIRouter, status
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
-from schemas.blog import ShowBlog
 from db.session import get_db
-from db.repository.blog import retreive_blog
-from sqlalchemy.orm import Session 
 from db.models.blog import Blog
 # from cachetools import TTLCache
 import redis, json
+from sqlalchemy.orm.attributes import instance_dict
 
 
 router = APIRouter()
@@ -18,62 +16,57 @@ router = APIRouter()
 redis_client = redis.StrictRedis(host='localhost', port=6379, db=0)
 
 
-# @router.post("/cache/add")
-# async def add_to_cache(key: str, db: Session= Depends(get_db)):
-#     value = 1 # db.query(Blog).filter(Blog.id == id).all()
-#     redis_client.set(key =1, value =1)
-#     return {"message": redis_client}
-
-
-# @router.get("/cache/blog/{id}", response_model=ShowBlog)
-# async def cache_get_blog(key: str, db: Session= Depends(get_db)):
-#     cached_result = redis_client.get(key)
-#     print (cached_result)
-#     if cached_result is not None:
-#         print("Cache hit!")
-#         return {"result": "ok"}
-#     else:
-#         cached_result = "not ok"
-#     if not cached_result:
-#         raise HTTPException(detail=f"Blog with ID does not exist.", status_code=status.HTTP_404_NOT_FOUND)
-#     return {"message":"out"}
-  
- 
-# @router.delete("/cache/clear")
-# async def clear_cache():
-#     redis_client.flushdb()
-#     return {"message": "Cache cleared"}
-
-
 @router.post("/cache/add")
 async def add_to_cache(key: str, db: Session = Depends(get_db)):
-    # Thay bằng logic truy vấn thực tế của bạn
-    blog = db.query(Blog).filter(Blog.id == 1).first()
-    blog_json = json.dumps(blog, default=lambda o: o.__dict__)
-    # Lưu dữ liệu blog vào cache Redis
-    redis_client.set(key, blog_json)  # Giả sử `key` là một chuỗi và `blog` là một đối tượng
-    
-    return {"message": "Dữ liệu được thêm vào cache"}
+    # Kiểm tra dữ liệu đã có trong cache chưa
+    cached_data = redis_client.get(key)
+    if cached_data:
+        return {"message": "Dữ liệu đã tồn tại trong cache", "data": json.loads(cached_data)}
 
-@router.get("/cache/blog/{id}", response_model=ShowBlog)
-async def cache_get_blog(id: int, db: Session = Depends(get_db)):
+    # Truy vấn từ cơ sở dữ liệu
+    blogs = db.query(Blog).filter(Blog.id >= int(key)).all()
+    if blogs:
+        blog_dicts = []
+        for blog in blogs:
+            # Chuyển đổi đối tượng SQLAlchemy thành từ điển
+            blog_dict = instance_dict(blog)
+            blog_dict.pop('_sa_instance_state', None)  # Loại bỏ thông tin phiên làm việc
+            blog_dicts.append(blog_dict)
+        blog_json = json.dumps(blog_dicts, default=str)  # Sử dụng default=str để xử lý datetime
+        print(blog_dicts)
+        # Lưu dữ liệu blog vào cache Redis
+        redis_client.set(key, blog_json) 
+        return {"message": "Dữ liệu đã được thêm vào cache", "data": json.loads(blog_json)}
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy dữ liệu trong cơ sở dữ liệu")
+
+@router.get("/cache/blog/{key}")
+async def cache_get_blog(key: str, db: Session = Depends(get_db)):
     # Kiểm tra xem dữ liệu có tồn tại trong cache Redis không
-    cached_result = redis_client.get(str(id))
+    cached_result = redis_client.get(key)
 
     if cached_result is not None:
-        print("Dữ liệu từ cache!")
-        # Bạn có thể trả về kết quả từ cache tại đây
-        return {"result": cached_result}
-    else:
-        print("Dữ liệu không có trong cache!")
+        return {"message": "Dữ liệu lấy từ cache", "data": json.loads(cached_result)}
 
     # Lấy dữ liệu từ cơ sở dữ liệu
-    blog = db.query(Blog).filter(Blog.id == id).first()
-
-    if blog is None:
+    blogs = db.query(Blog).filter(Blog.id >= int(key)).all()
+    if blogs is None:
         raise HTTPException(detail=f"Bài viết với ID {id} không tồn tại.", status_code=status.HTTP_404_NOT_FOUND)
 
-    # Lưu dữ liệu blog từ cơ sở dữ liệu vào cache Redis
-    redis_client.set(str(id), blog)  # Giả sử `id` là một số nguyên và `blog` là một đối tượng
+    if blogs:
+        blog_dicts = []
+        for blog in blogs:
+            # Chuyển đổi đối tượng SQLAlchemy thành từ điển
+            blog_dict = instance_dict(blog)
+            blog_dict.pop('_sa_instance_state', None)  # Loại bỏ thông tin phiên làm việc
+            blog_dicts.append(blog_dict)
+        blog_json = json.dumps(blog_dicts, default=str)  # Sử dụng default=str để xử lý datetime
 
-    return blog
+        # Lưu dữ liệu blog vào cache Redis
+        redis_client.set(key, blog_json) 
+    return {"message": "Dữ liệu chưa có trong cache", "data in db": json.loads(blog_json)}
+
+@router.delete("/cache/clear")
+async def clear_cache():
+    redis_client.flushdb()
+    return {"message": "Cache cleared"}
